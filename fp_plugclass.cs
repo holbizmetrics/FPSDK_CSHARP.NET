@@ -5,202 +5,204 @@
 //https://www.tangiblesoftwaresolutions.com/order/order-cplus-to-csharp.html
 //====================================================================================================
 
+using System.Runtime.InteropServices;
+
 namespace FLStudioSDK
 {
 #if _USE_AFX
 #define VC_EXTRALEAN // Exclude rarely-used stuff from Windows headers
 #endif
 
-/*
+    /*
 
-FL Studio generator/effect plugins SDK
-plugin & host classes
+    FL Studio generator/effect plugins SDK
+    plugin & host classes
 
-(99-15) gol
-
-
-!!! Warnings:
-
--when multithreadable, a generator (not effect) adding to the output buffer, or a generator/effect adding to the send buffers, must lock the access in-between LockMix_Shared / UnlockMix_Shared
+    (99-15) gol
 
 
+    !!! Warnings:
+
+    -when multithreadable, a generator (not effect) adding to the output buffer, or a generator/effect adding to the send buffers, must lock the access in-between LockMix_Shared / UnlockMix_Shared
 
 
-history:
-
-(10/05/00)
-- rewrote almost everything, a lot of changes & splits
-
-(15/07/00)
-- changed TVoiceParams & the way the levels are handled (Voice_Render)
-- added FPF_TimeWarp
-
-(26/07/00)
-- added plugin flags combo's
-- removed AlphaTable from TFruityPlugHost
-
-(27/07/00)
-- DefPoly now used
-
-(26/09/00)
-- TFruityPlugHost.MIDIOut declaration has changed
-- implemented FPF_MIDITick
-
-(27/09/00)
-- added TFruityPlugHost.MIDIOut_Delayed & FPF_MIDIOut, reorganized TFruityPlugHost
-- defined UseCriticalSection in FP_DelphiPlug
-- updated FPE_Tempo
-- added FPE_MaxPoly & FPD_KillAVoice
-
-(11/10/00)
-- added FPE_MIDI_Pan & FPE_MIDI_Vol
-
-(01/11/00)
-- updated TFruityPlugHost.Voice_Kill(Sender:Integer;KillHandle:LongBool);
-  (KillHandle forces Fruity to ask back the plugin to destroy its voice, in case the plugin is still using that voice handle, or has destroyed it already, use False)
-
-(27/11/00)
-- added FPN_VoiceLevel & FPN_VoiceLevelHint to allow the plugin to define the function of the 2 extra per-voice params (filter cutoff & resonance by default)
-  added FPD_UseVoiceLevels
-
-(29/11/00)
-- added TempBuffers (TFruityPlugHost)
-- added AddWave_32FM_32FS_Ramp and AddWave_32FS_32FS_Ramp (TFruityPlugHost)
-
-(13/12/00)
-- updated FPE_MIDI_Vol
-- added FHD_ActivateMIDI
-
-(15/12/00)
-- added FPF_MIDIIn, TFruityPlug.MIDIIn
-
-(16/12/00)
-- removed FPF_MIDIIn & FPF_MIDITick, added FHD_WantMIDIInput & FHD_WantMIDITick
-
-(19/12/00)
-- added FPD_WrapPlugin and FHD_LocatePlugin
-
-(20/12/00)
-- added FHD_KillAutomation
-- added FPF_DemoVersion
-
-(21/12/00)
-- added FHD_SetNumPresets, FPN_Preset, FPD_SetPreset
-
-(02/01/01)
-- added noise wavetable
-- updated PM_HQ
-
-(15/02/01)
-- added FHD_VSTiIdle
-- now supports FPF_UseChanSample
-- added FPD_SetCustomWaveTable
-
-(19/03/01)
-- updated FPD_WrapPlugin
-
-(18/04/O1)
-- added sample loading functions
-
-(2/06/01)
-- added FPN_OutCtrl, NumOutCtrls
-- replaced FPF_EventController by FPF_WantNewTick (now implemented)
-
-(12/07/01)
-- added FHD_LocateDataFile
-- fixed the implementation of TFruityPlugHost.Voice_Release in FruityLoops
-
-(19/07/01)
-- added FHD_GetParamMenuEntry
-- (!) changed CurrentSDKVersion to 1
-
-(24/07/01)
-- added some info to WaveTables & TempBuffers
-
-(29/07/01)
-- added MsgIn, PlugMsg_Delayed, etc. (for the Fruity Vibrator)
-
-(02/08/01)
-- added FPF_Hybrid
-- renamed FPF_UseChanSample to FPF_GetChanCustomShape & renamed FPD_SetCustomShape to FPD_ChanSampleChanged
-- added FPF_GetChanSample (so that the plugin can get the sample as a custom 32FM shape, or a 16IS sample
-- added FHLS_GetName
-- changed & added processing mode flags (see PM_IsRendering)
-- added GetSampleInfo
-
-(13/02/02)
-- removed MixingTick & MIDITick class variables
-
-(10/07/02)
-- added FPF_WantFitTime
-
-(29/06/02)
-- increased number of temp buffers to 4
-
-(06/05/04)
-- added FHLS_NoResampling
-
-(18/07/04)
-- added FPF_NewVoiceParams
-  HOW TO UPDATE TO THIS:
-  Step 1: Add FPF_NewVoiceParams to your plugin flags
-  Step 2: Adapt your code so that you read the pitch & panning as floats instead of integers. Pitch is still in cents, and panning is in -1..1
-  Note: ComputeLRVol was changed to ComputeLRVol_Old, and ComputeLRVol has been adapted to accept a -1..1 float panning parameter
-
-(08/11/04)
-- changed FPD_SetNumSends
-
-(31/12/04)
-- added FPD_SetSamplesPerTick
-
-(21/03/05)
-- added FPV_GetLength and FPV_GetColor for a plugin to retrieve voice color & length
-
-(16/05/05)
-- added (GM) and (G) comments telling from which thread(s) functions can be called
-- added TFruityPlugHost.LockPlugin
-
-(08/03/06)
-- added FPF_IsDelphi (not in C++ version)
-
-(02/11/06)
-- added FPV_GetVelocity, FPV_GetRelVelocity, FPV_GetRelTime and FPV_SetLinkVelocity
-
-(23/12/08)
-- added FHD_GetNumInOut, GetInBuffer, GetOutBuffer, FPD_RoutingChanged
-- GetInsBuffer now cannot use Ofs=0 (could bring problems)
-So, GetInsBuffer, GetInBuffer & GetOutBuffer use Indexes that start at 1, 0 meaning the buffer during rendering
-
-(27/01/09)
-- added FHD_FloatAutomation, FPD_GetParamInfo, FPD_ProjLoaded, FPD_WrapperLoadState, FPD_ShowSettings, FPF_WantSettingsBtn
-
-(02/11/11)
-- MsgIn, PlugMsg_Delayed, PlugMsg_Kill are now deprecated. DO NOT USE THEM!
-
-*/
 
 
-//---------------------------------------------------------------------------
+    history:
+
+    (10/05/00)
+    - rewrote almost everything, a lot of changes & splits
+
+    (15/07/00)
+    - changed TVoiceParams & the way the levels are handled (Voice_Render)
+    - added FPF_TimeWarp
+
+    (26/07/00)
+    - added plugin flags combo's
+    - removed AlphaTable from TFruityPlugHost
+
+    (27/07/00)
+    - DefPoly now used
+
+    (26/09/00)
+    - TFruityPlugHost.MIDIOut declaration has changed
+    - implemented FPF_MIDITick
+
+    (27/09/00)
+    - added TFruityPlugHost.MIDIOut_Delayed & FPF_MIDIOut, reorganized TFruityPlugHost
+    - defined UseCriticalSection in FP_DelphiPlug
+    - updated FPE_Tempo
+    - added FPE_MaxPoly & FPD_KillAVoice
+
+    (11/10/00)
+    - added FPE_MIDI_Pan & FPE_MIDI_Vol
+
+    (01/11/00)
+    - updated TFruityPlugHost.Voice_Kill(Sender:Integer;KillHandle:LongBool);
+      (KillHandle forces Fruity to ask back the plugin to destroy its voice, in case the plugin is still using that voice handle, or has destroyed it already, use False)
+
+    (27/11/00)
+    - added FPN_VoiceLevel & FPN_VoiceLevelHint to allow the plugin to define the function of the 2 extra per-voice params (filter cutoff & resonance by default)
+      added FPD_UseVoiceLevels
+
+    (29/11/00)
+    - added TempBuffers (TFruityPlugHost)
+    - added AddWave_32FM_32FS_Ramp and AddWave_32FS_32FS_Ramp (TFruityPlugHost)
+
+    (13/12/00)
+    - updated FPE_MIDI_Vol
+    - added FHD_ActivateMIDI
+
+    (15/12/00)
+    - added FPF_MIDIIn, TFruityPlug.MIDIIn
+
+    (16/12/00)
+    - removed FPF_MIDIIn & FPF_MIDITick, added FHD_WantMIDIInput & FHD_WantMIDITick
+
+    (19/12/00)
+    - added FPD_WrapPlugin and FHD_LocatePlugin
+
+    (20/12/00)
+    - added FHD_KillAutomation
+    - added FPF_DemoVersion
+
+    (21/12/00)
+    - added FHD_SetNumPresets, FPN_Preset, FPD_SetPreset
+
+    (02/01/01)
+    - added noise wavetable
+    - updated PM_HQ
+
+    (15/02/01)
+    - added FHD_VSTiIdle
+    - now supports FPF_UseChanSample
+    - added FPD_SetCustomWaveTable
+
+    (19/03/01)
+    - updated FPD_WrapPlugin
+
+    (18/04/O1)
+    - added sample loading functions
+
+    (2/06/01)
+    - added FPN_OutCtrl, NumOutCtrls
+    - replaced FPF_EventController by FPF_WantNewTick (now implemented)
+
+    (12/07/01)
+    - added FHD_LocateDataFile
+    - fixed the implementation of TFruityPlugHost.Voice_Release in FruityLoops
+
+    (19/07/01)
+    - added FHD_GetParamMenuEntry
+    - (!) changed CurrentSDKVersion to 1
+
+    (24/07/01)
+    - added some info to WaveTables & TempBuffers
+
+    (29/07/01)
+    - added MsgIn, PlugMsg_Delayed, etc. (for the Fruity Vibrator)
+
+    (02/08/01)
+    - added FPF_Hybrid
+    - renamed FPF_UseChanSample to FPF_GetChanCustomShape & renamed FPD_SetCustomShape to FPD_ChanSampleChanged
+    - added FPF_GetChanSample (so that the plugin can get the sample as a custom 32FM shape, or a 16IS sample
+    - added FHLS_GetName
+    - changed & added processing mode flags (see PM_IsRendering)
+    - added GetSampleInfo
+
+    (13/02/02)
+    - removed MixingTick & MIDITick class variables
+
+    (10/07/02)
+    - added FPF_WantFitTime
+
+    (29/06/02)
+    - increased number of temp buffers to 4
+
+    (06/05/04)
+    - added FHLS_NoResampling
+
+    (18/07/04)
+    - added FPF_NewVoiceParams
+      HOW TO UPDATE TO THIS:
+      Step 1: Add FPF_NewVoiceParams to your plugin flags
+      Step 2: Adapt your code so that you read the pitch & panning as floats instead of integers. Pitch is still in cents, and panning is in -1..1
+      Note: ComputeLRVol was changed to ComputeLRVol_Old, and ComputeLRVol has been adapted to accept a -1..1 float panning parameter
+
+    (08/11/04)
+    - changed FPD_SetNumSends
+
+    (31/12/04)
+    - added FPD_SetSamplesPerTick
+
+    (21/03/05)
+    - added FPV_GetLength and FPV_GetColor for a plugin to retrieve voice color & length
+
+    (16/05/05)
+    - added (GM) and (G) comments telling from which thread(s) functions can be called
+    - added TFruityPlugHost.LockPlugin
+
+    (08/03/06)
+    - added FPF_IsDelphi (not in C++ version)
+
+    (02/11/06)
+    - added FPV_GetVelocity, FPV_GetRelVelocity, FPV_GetRelTime and FPV_SetLinkVelocity
+
+    (23/12/08)
+    - added FHD_GetNumInOut, GetInBuffer, GetOutBuffer, FPD_RoutingChanged
+    - GetInsBuffer now cannot use Ofs=0 (could bring problems)
+    So, GetInsBuffer, GetInBuffer & GetOutBuffer use Indexes that start at 1, 0 meaning the buffer during rendering
+
+    (27/01/09)
+    - added FHD_FloatAutomation, FPD_GetParamInfo, FPD_ProjLoaded, FPD_WrapperLoadState, FPD_ShowSettings, FPF_WantSettingsBtn
+
+    (02/11/11)
+    - MsgIn, PlugMsg_Delayed, PlugMsg_Kill are now deprecated. DO NOT USE THEM!
+
+    */
+
+
+    //---------------------------------------------------------------------------
 
 
 
 #if __APPLE__
 #else
 #endif
-//C++ TO C# CONVERTER NOTE: The following #define macro was replaced in-line:
-//ORIGINAL LINE: #define WaveT_Size ( 1 << WaveT_Bits )
-//C++ TO C# CONVERTER NOTE: The following #define macro was replaced in-line:
-//ORIGINAL LINE: #define WaveT_Shift ( 32 - WaveT_Bits )
-//C++ TO C# CONVERTER NOTE: The following #define macro was replaced in-line:
-//ORIGINAL LINE: #define WaveT_Step 1 << WaveT_Shift
-//C++ TO C# CONVERTER NOTE: The following #define macro was replaced in-line:
-//ORIGINAL LINE: #define WaveT_PMask ( 0xFFFFFFFF >> WaveT_Shift )
-//C++ TO C# CONVERTER NOTE: The following #define macro was replaced in-line:
-//ORIGINAL LINE: #define WaveT_FMask ( 0xFFFFFFFF >> WaveT_Bits )
-//C++ TO C# CONVERTER NOTE: The following #define macro was replaced in-line:
-//ORIGINAL LINE: #define MIDIMsg_PortMask 0xFFFFFF;
-//C++ TO C# CONVERTER NOTE: The following #define macro was replaced in-line:
-//ORIGINAL LINE: #define MIDIMsg_Null 0xFFFFFFFF;
+    //C++ TO C# CONVERTER NOTE: The following #define macro was replaced in-line:
+    //ORIGINAL LINE: #define WaveT_Size ( 1 << WaveT_Bits )
+    //C++ TO C# CONVERTER NOTE: The following #define macro was replaced in-line:
+    //ORIGINAL LINE: #define WaveT_Shift ( 32 - WaveT_Bits )
+    //C++ TO C# CONVERTER NOTE: The following #define macro was replaced in-line:
+    //ORIGINAL LINE: #define WaveT_Step 1 << WaveT_Shift
+    //C++ TO C# CONVERTER NOTE: The following #define macro was replaced in-line:
+    //ORIGINAL LINE: #define WaveT_PMask ( 0xFFFFFFFF >> WaveT_Shift )
+    //C++ TO C# CONVERTER NOTE: The following #define macro was replaced in-line:
+    //ORIGINAL LINE: #define WaveT_FMask ( 0xFFFFFFFF >> WaveT_Bits )
+    //C++ TO C# CONVERTER NOTE: The following #define macro was replaced in-line:
+    //ORIGINAL LINE: #define MIDIMsg_PortMask 0xFFFFFF;
+    //C++ TO C# CONVERTER NOTE: The following #define macro was replaced in-line:
+    //ORIGINAL LINE: #define MIDIMsg_Null 0xFFFFFFFF;
 
 #if __APPLE__
 //C++ TO C# CONVERTER TODO TASK: #define macros defined in multiple preprocessor conditionals can only be replaced within the scope of the preprocessor conditional:
@@ -243,10 +245,10 @@ So, GetInsBuffer, GetInBuffer & GetOutBuffer use Indexes that start at 1, 0 mean
 //typedef long LARGE_INTEGER;
 #endif
 
-//C++ TO C# CONVERTER TODO TASK: There is no equivalent to most C++ 'pragma' directives in C#:
-//#pragma pack( push )
-//C++ TO C# CONVERTER TODO TASK: There is no equivalent to most C++ 'pragma' directives in C#:
-//#pragma pack( 4 )
+    //C++ TO C# CONVERTER TODO TASK: There is no equivalent to most C++ 'pragma' directives in C#:
+    //#pragma pack( push )
+    //C++ TO C# CONVERTER TODO TASK: There is no equivalent to most C++ 'pragma' directives in C#:
+    //#pragma pack( 4 )
 
 
 #if __APPLE__
@@ -300,7 +302,7 @@ public interface IStream
 #endif
 
 
-// plugin info, common to all instances of the same plugin
+    // plugin info, common to all instances of the same plugin
     public class TFruityPlugInfo
     {
         public int SDKVersion; // =CurrentSDKVersion
@@ -314,13 +316,16 @@ public interface IStream
 
         public int[] Reserved = new int[30]; // set to zero
     }
+    public class PFruityPlugInfo
+    {
+        public TFruityPlugInfo Value;
+    }
 
+    // voice handle (can be an index or a memory pointer (must be unique, that is *not* just the semitone #))
 
-// voice handle (can be an index or a memory pointer (must be unique, that is *not* just the semitone #))
+    // sample handle
 
-// sample handle
-
-// sample region
+    // sample region
     public class TSampleRegion
     {
         public int SampleStart;
@@ -332,16 +337,16 @@ public interface IStream
         public int[] Reserved = new int[4];
     }
 
-//C++ TO C# CONVERTER TODO TASK: There is no equivalent to most C++ 'pragma' directives in C#:
-//#pragma pack( pop )
+    //C++ TO C# CONVERTER TODO TASK: There is no equivalent to most C++ 'pragma' directives in C#:
+    //#pragma pack( pop )
 
 
-//C++ TO C# CONVERTER TODO TASK: There is no equivalent to most C++ 'pragma' directives in C#:
-//#pragma pack( push )
-//C++ TO C# CONVERTER TODO TASK: There is no equivalent to most C++ 'pragma' directives in C#:
-//#pragma pack( 1 )
+    //C++ TO C# CONVERTER TODO TASK: There is no equivalent to most C++ 'pragma' directives in C#:
+    //#pragma pack( push )
+    //C++ TO C# CONVERTER TODO TASK: There is no equivalent to most C++ 'pragma' directives in C#:
+    //#pragma pack( 1 )
 
-// sample info, FILL CORRECTLY
+    // sample info, FILL CORRECTLY
     public class TSampleInfo
     {
         public int Size; // size of this structure, MUST BE SET BY THE PLUGIN
@@ -360,16 +365,16 @@ public interface IStream
 
     }
 
-//C++ TO C# CONVERTER TODO TASK: There is no equivalent to most C++ 'pragma' directives in C#:
-//#pragma pack( pop )
+    //C++ TO C# CONVERTER TODO TASK: There is no equivalent to most C++ 'pragma' directives in C#:
+    //#pragma pack( pop )
 
 
-//C++ TO C# CONVERTER TODO TASK: There is no equivalent to most C++ 'pragma' directives in C#:
-//#pragma pack( push )
-//C++ TO C# CONVERTER TODO TASK: There is no equivalent to most C++ 'pragma' directives in C#:
-//#pragma pack( 4 )
+    //C++ TO C# CONVERTER TODO TASK: There is no equivalent to most C++ 'pragma' directives in C#:
+    //#pragma pack( push )
+    //C++ TO C# CONVERTER TODO TASK: There is no equivalent to most C++ 'pragma' directives in C#:
+    //#pragma pack( 4 )
 
-// see FPV_GetInfo
+    // see FPV_GetInfo
     public class TVoiceInfo
     {
         public int Length;
@@ -379,23 +384,23 @@ public interface IStream
         public int[] Reserved = new int[8];
     }
 
-//C++ TO C# CONVERTER TODO TASK: There is no equivalent to most C++ 'pragma' directives in C#:
-//#pragma pack( pop )
+    //C++ TO C# CONVERTER TODO TASK: There is no equivalent to most C++ 'pragma' directives in C#:
+    //#pragma pack( pop )
 
 
-//C++ TO C# CONVERTER TODO TASK: There is no equivalent to most C++ 'pragma' directives in C#:
-//#pragma pack( push )
-//C++ TO C# CONVERTER TODO TASK: There is no equivalent to most C++ 'pragma' directives in C#:
-//#pragma pack( 1 )
+    //C++ TO C# CONVERTER TODO TASK: There is no equivalent to most C++ 'pragma' directives in C#:
+    //#pragma pack( push )
+    //C++ TO C# CONVERTER TODO TASK: There is no equivalent to most C++ 'pragma' directives in C#:
+    //#pragma pack( 1 )
 
-// see FHD_GetMixingTime
+    // see FHD_GetMixingTime
     public class TFPTime
     {
         public double t;
         public double t2;
     }
 
-// see FHD_GetInName
+    // see FHD_GetInName
     public class TNameColor
     {
         public string Name = new string(new char[256]); // user-defined name (can be empty)
@@ -404,7 +409,7 @@ public interface IStream
         public int Index; // real index of the item (can be used to translate plugin's own in/out into real mixer track #)
     }
 
-// see GetInBuffer/GetOutBuffer
+    // see GetInBuffer/GetOutBuffer
     public class TIOBuffer
     {
         public object Buffer;
@@ -412,14 +417,14 @@ public interface IStream
         public int Flags; // see IO_Filled
     }
 
-//C++ TO C# CONVERTER TODO TASK: There is no equivalent to most C++ 'pragma' directives in C#:
-//#pragma pack( pop )
+    //C++ TO C# CONVERTER TODO TASK: There is no equivalent to most C++ 'pragma' directives in C#:
+    //#pragma pack( pop )
 
 
-// level params, used both for final voice levels (voice levels+parent channel levels) & original voice levels
-// note: all params can go outside their defined range
+    // level params, used both for final voice levels (voice levels+parent channel levels) & original voice levels
+    // note: all params can go outside their defined range
 
-// OLD, OBSOLETE VERSION, DO NOT USE!!!
+    // OLD, OBSOLETE VERSION, DO NOT USE!!!
     public class TLevelParams_Old
     {
         public int Pan; // panning (-64..64)

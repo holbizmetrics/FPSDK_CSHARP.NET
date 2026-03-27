@@ -46,8 +46,10 @@
     <Compile Include="DefineConstants.cs" />
     <Compile Include="fp_cplug.cs" />
     <Compile Include="fp_def.cs" />
+    <Compile Include="fp_extra.cs" />
     <Compile Include="fp_ILVSTInterface.cs" />
     <Compile Include="fp_plugclass.cs" />
+    <Compile Include="generictransport.h.cs" />
     <Compile Include="int16_t.cs" />
     <Compile Include="int32_t.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
